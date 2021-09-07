@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/go-martini/martini"
+	"github.com/martini-contrib/cors"
 
 	"github.com/martini-contrib/binding"
 	"github.com/martini-contrib/render"
@@ -250,6 +251,13 @@ func initFile() {
 func main() {
 	// init class
 	m := martini.Classic()
+	m.Use(cors.Allow(&cors.Options{
+		AllowOrigins:     []string{"*"}, // allow all hosts
+		AllowMethods:     []string{"GET"},
+		AllowHeaders:     []string{"Origin"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 	m.Use(render.Renderer())
 	m.Use(martini.Recovery())
 	m.Use(martini.Logger())

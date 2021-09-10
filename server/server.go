@@ -118,12 +118,39 @@ func martiniRoute(m *martini.ClassicMartini) {
 			}
 		})
 
+		r.Delete("/:id", func(re render.Render, params martini.Params) {
+			allUsers := getAllUsersData()
+			idStr := params["id"]
+			if id, err := strconv.Atoi(idStr); err != nil {
+				badRequestUser(re, "Cannot found id: "+idStr)
+			} else {
+				systemLogs("ID:::" + strconv.Itoa(id))
+				// try to get user by id
+				if user, status := getUserById(id, allUsers); status {
+					// remove
+					if err := removeUserById(id, allUsers); err == nil {
+						re.JSON(http.StatusOK, ResponseUser{
+							Message: "Delete success",
+							Status:  true,
+							Data:    user,
+						})
+					} else {
+						re.JSON(http.StatusInternalServerError, ResponseUser{Status: false, Message: err.Error()})
+					}
+				} else {
+					badRequestUser(re, "Cannot found id: "+idStr)
+				}
+			}
+		})
+
 		// Update user data
 		r.Post("/:id", binding.Bind(User{}), func(user User, re render.Render, params martini.Params) {
+			fmt.Println("user", user)
 			idStr := params["id"]
 			if id, err := strconv.Atoi(idStr); err == nil {
 				allUsers := getAllUsersData()
 				if userOrg, status := getUserById(id, allUsers); status {
+					fmt.Println("userOrg", userOrg)
 					if user.Name != "" {
 						userOrg.Name = user.Name
 					}
@@ -193,6 +220,24 @@ func getUserById(id int, allUsers []User) (User, bool) {
 	return data, status
 }
 
+func removeUserById(id int, allUsers []User) error {
+	index := 0
+
+	// find index
+	for i := 0; i < len(allUsers); i++ {
+		if allUsers[i].Id == id {
+			index = i
+			break
+		}
+	}
+
+	// remove array item by index
+	newUsers := append(allUsers[:index], allUsers[index+1:]...)
+	fmt.Println("newUsers", newUsers)
+
+	return writeNewUsers(newUsers)
+}
+
 func getAllUsers() ([]User, bool) {
 	dataUsers := []User{}
 	status := false
@@ -253,8 +298,8 @@ func main() {
 	m := martini.Classic()
 	m.Use(cors.Allow(&cors.Options{
 		AllowOrigins:     []string{"*"}, // allow all hosts
-		AllowMethods:     []string{"GET"},
-		AllowHeaders:     []string{"Origin"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowHeaders:     []string{"Origin", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))

@@ -39,7 +39,7 @@ export default {
       })
       .then((res) => {
         console.log("res", res);
-        this.users = res?.data || [];
+        this.users = (res?.data || []).reverse();
       })
       .catch((err) => {
         console.error(err);
